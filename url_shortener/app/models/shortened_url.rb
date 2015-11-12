@@ -24,6 +24,7 @@ class ShortenedUrl < ActiveRecord::Base
     class_name: "Visit"
 
   has_many :visitors,
+    Proc.new { distinct },
     through: :visits,
     source: :visitor
 
@@ -32,7 +33,8 @@ class ShortenedUrl < ActiveRecord::Base
   end
 
   def num_uniques
-    visits.select(:user_id).distinct.where( :created_at => ((Time.now - 600)..Time.now)).count
+    # visits.select(:user_id).distinct.where( :created_at => ((Time.now - 600)..Time.now)).count
+    visitors.count
   end
 
   def self.random_code
@@ -44,7 +46,11 @@ class ShortenedUrl < ActiveRecord::Base
   end
 
   def self.create_for_user_and_long_url!(user, long_url)
-    ShortenedUrl.create!(short_url: ShortenedUrl.random_code,
-      long_url: long_url, user_id: user.id)
+    if find_by(long_url: long_url).nil?
+      create!(short_url: random_code, long_url: long_url, user_id: user.id)
+    else
+      puts "A short url already exists!"
+      find_by(long_url: long_url)
+    end
   end
 end
